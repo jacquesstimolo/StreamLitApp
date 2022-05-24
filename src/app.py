@@ -18,7 +18,7 @@ import streamlit as st
 
 
 
-df = pd.read_csv('data.csv')
+df = pd.read_csv('renewable_power_plants_CH.csv')
 
 
 with open('georef-switzerland-kanton.geojson') as json_file:
