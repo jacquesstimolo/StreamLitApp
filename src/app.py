@@ -13,16 +13,15 @@ import plotly.graph_objects as go
 import streamlit as st
 
 
-
 # st.title("MPG")
 # df = pd.read_csv("mpg.csv")
 
 
 
-df = pd.read_csv('data/renewable_power_plants_CH.csv', encoding="unicode_escape")
+df = pd.read_csv('renewable_power_plants_CH.csv', encoding="unicode_escape")
 
 
-with open('data/georef-switzerland-kanton.geojson') as json_file:
+with open('georef-switzerland-kanton.geojson') as json_file:
     cantons = json.load(json_file)
 
 
