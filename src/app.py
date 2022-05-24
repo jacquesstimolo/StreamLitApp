@@ -1,5 +1,6 @@
 # Standard imports
 import pandas as pd
+import json
 
 # matplotlib
 import matplotlib as mpl
@@ -11,9 +12,20 @@ import plotly.graph_objects as go
 
 import streamlit as st
 
-st.title("MPG")
 
-df = pd.read_csv("mpg.csv")
+
+# st.title("MPG")
+# df = pd.read_csv("mpg.csv")
+
+
+with open('georef-switzerland-kanton.geojson') as json_file:
+    cantons = json.load(json_file)
+
+
+df = pd.read_csv('renewable_power_plants_CH.csv')
+
+
+
 
 # Basic set-up of the page:
 # First the checkbox to show the data frame
@@ -21,20 +33,24 @@ if st.sidebar.checkbox('Show dataframe'):
     st.header("dataframe")
     st.dataframe(df.head())
 
+
 # Then the radio botton for the plot type
-show_plot = st.sidebar.radio(
-    label='Choose Plot type', options=['Matplotlib', 'Plotly'])
+# show_plot = st.sidebar.radio(
+#     label='Choose Plot type', options=['Matplotlib', 'Plotly'])
 
-st.header("Highway Fuel Efficiency")
-years = ["All"]+sorted(pd.unique(df['year']))
-year = st.sidebar.selectbox("choose a Year", years)   # Here the selection of the year.
-car_classes = ['All'] + sorted(pd.unique(df['class']))
-car_class = st.sidebar.selectbox("choose a Class", car_classes)  # and the selection of the class.
 
-show_means = st.sidebar.radio(
-    label='Show Class Means', options=['Yes', 'No'])
+# st.header("Highway Fuel Efficiency")
+# years = ["All"]+sorted(pd.unique(df['year']))
+# year = st.sidebar.selectbox("choose a Year", years)   # Here the selection of the year.
+# car_classes = ['All'] + sorted(pd.unique(df['class']))
+# car_class = st.sidebar.selectbox("choose a Class", car_classes)  # and the selection of the class.
 
-st.subheader(f'Fuel efficiency vs. engine displacement for {year}')
+
+# show_means = st.sidebar.radio(
+#     label='Show Class Means', options=['Yes', 'No'])
+
+
+# st.subheader(f'Fuel efficiency vs. engine displacement for {year}')
 
 
 # With these functions we wrangle the data and plot it.
@@ -75,11 +91,54 @@ def mpg_plotly(year, car_class, show_means):
     return fig
   
 
-if show_plot == 'Plotly':
-    st.plotly_chart(mpg_plotly(year, car_class, show_means))
+# if show_plot == 'Plotly':
+#     st.plotly_chart(mpg_plotly(year, car_class, show_means))
     
-else:
-    st.pyplot(mpg_mpl(year, car_class, show_means))
+# else:
+#     st.pyplot(mpg_mpl(year, car_class, show_means))
 
+
+
+
+
+
+
+def modify_cantons(canton):
+    dict_cantons = {
+        'Genève' : 'GE',
+        'Schaffhausen' : 'SH',
+        'Uri' : 'UR',
+        'Bern' : 'BE',
+        'Fribourg' : 'FR',
+        'Aargau' : 'AG',
+        'Graubünden' : 'GR',
+        'Luzern' : 'LU',
+        'Basel-Stadt' : 'BS',
+        'Ticino' : 'TI',
+        'Obwalden' : 'OW',
+        'Appenzell Ausserrhoden' : 'AR',
+        'Solothurn' : 'SO',
+        'Schwyz' : 'SZ',
+        'Jura' : 'JU',
+        'St. Gallen' : 'SG',
+        'Valais' : 'VS',
+        'Thurgau' : 'TG',
+        'Vaud' : 'VD',
+        'Basel-Landschaft' : 'BL',
+        'Zürich' : 'ZH',
+        'Nidwalden' : 'NW',
+        'Glarus' : 'GL',
+        'Neuchâtel' : 'NE',
+        'Zug' : 'ZG',
+        'Appenzell Innerrhoden' : 'AI'
+    }
+
+    for i in range(len(cantons['features'])):
+        cantons['features'][i]['id'] = dict_cantons[cantons['features'][i]['properties']['kan_name']]
+    return cantons
+
+
+cantons = modify_cantons(cantons)
+st.header(cantons['features'][0])
 
 
