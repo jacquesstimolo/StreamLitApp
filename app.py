@@ -155,10 +155,20 @@ enegry_type = st.sidebar.radio(
 for i in range(len(cantons['features'])):
     cantons['features'][i]['id'] = dict_cantons[cantons['features'][i]['properties']['kan_name']]
 
+# Dataframes:
+sum_el_cap = df.copy()
+sum_el_cap = sum_el_cap.groupby('canton').electrical_capacity.sum().reset_index().sort_values(by = 'electrical_capacity', ascending=False)
+sum_el_cap_n = sum_el_cap.copy()
 
-df1 = df.copy()
-df1 = df1[['canton', 'electrical_capacity', 'energy_source_level_2']]
-df1.groupby('canton').electrical_capacity.sum()
+func = lambda row: row.electrical_capacity / dict_areas[row.canton]
+sum_el_cap['el_cap_by_area'] = df.apply(func, axis=1)
+sum_el_cap_area = sum_el_cap.copy()
+sum_el_cap_area = sum_el_cap_area.sort_values(by = 'electrical_capacity', ascending=False)
+
+func = lambda row: row.electrical_capacity / dict_habitants[row.canton]
+sum_el_cap['el_cap_by_habit'] = df.apply(func, axis=1)
+sum_el_cap_habit = sum_el_cap.copy()
+sum_el_cap_habit = sum_el_cap_habit.sort_values(by = 'electrical_capacity', ascending=False)
 
 
 
@@ -166,15 +176,29 @@ df1.groupby('canton').electrical_capacity.sum()
 #--------------------------------------------
 # PLOTS:
 #--------------------------------------------
-def division(series, div):
-    series = series.tolist()
-    div = div.tolist()
+# First plot:
+fig1 = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=sum_el_cap.canton, z=sum_el_cap.electrical_capacity,
+                                    colorscale="Viridis", 
+                                    marker_opacity=0.5, marker_line_width=0))
+fig1.update_layout(mapbox_style="carto-positron",
+                  mapbox_zoom=6, mapbox_center = {"lat": 46.484, "lon": 8.1336})
+fig1.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
-    res = []
-    for i in range(len(series)):
-        res.append(series[i] / div[i])
+# Second plot:
+fig2 = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=sum_el_cap.canton, z=sum_el_cap.el_cap_by_area,
+                                    colorscale="Viridis", 
+                                    marker_opacity=0.5, marker_line_width=0))
+fig2.update_layout(mapbox_style="carto-positron",
+                  mapbox_zoom=6, mapbox_center = {"lat": 46.484, "lon": 8.1336})
+fig2.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
-    return pd.DataFrame(res)
+# Third plot:
+fig3 = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=sum_el_cap.canton, z=sum_el_cap.el_cap_by_habit,
+                                    colorscale="Viridis", 
+                                    marker_opacity=0.5, marker_line_width=0))
+fig3.update_layout(mapbox_style="carto-positron",
+                  mapbox_zoom=6, mapbox_center = {"lat": 46.484, "lon": 8.1336})
+fig3.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
 
 
