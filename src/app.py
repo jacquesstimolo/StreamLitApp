@@ -102,7 +102,7 @@ def mpg_plotly(year, car_class, show_means):
 
 
 
-
+# Adding ID to data:
 def modify_cantons(canton):
     dict_cantons = {
         'Genève' : 'GE',
@@ -139,6 +139,143 @@ def modify_cantons(canton):
 
 
 cantons = modify_cantons(cantons)
-st.header(cantons['features'][0])
 
 
+st.markdown('> For the first analysis I will just take the the sum of the electrical capacity for each type of energy-harversting method, that for each canton.')
+
+df1 = df.copy()
+df1 = df1.groupby('canton').electrical_capacity.sum().reset_index()
+st.dataframe(df1)
+
+
+fig = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=df1.canton, z=df1.electrical_capacity,
+                                    colorscale="Viridis", 
+                                    marker_opacity=0.5, marker_line_width=0))
+
+
+fig.update_layout(mapbox_style="carto-positron",
+                  mapbox_zoom=6, mapbox_center = {"lat": 46.484, "lon": 8.1336})
+
+fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
+
+st.plotly_chart(fig)
+
+
+st.markdown('---')
+st.markdown('### Observations:')
+st.markdown('> I noticed that big cantons also have a high electricity capacity. Hence: I will divide the elecricity by the area of each canton to obtain the el-cap per square-km. With the hope that this will partially eliminate the factor of the canton-size.')
+
+
+st.markdown('> I know yet that there are still a lot of factor as the location: After some thinking I hypothesized that the location also plays a big role.')
+st.markdown('- Cantons in the South have access to other kind of resources such as Hydro-power, due to them beeing near the Alps.')
+st.markdown(' - Cantons in the Center-North are in a plane, hence they can take advantage of the wind and sun for example.')
+
+st.markdown('> My hypothesis was confirmed after looking at the following article (given from in the exercise) Source: https://www.uvek-gis.admin.ch/BFE/storymaps/EE_Elektrizitaetsproduktionsanlagen/?lang=en')
+
+st.markdown('> Yet it is really hard to take count of such factors, hence I will ignore them.')
+st.markdown('---')
+
+
+
+dict_areas = {
+    'GE' : 282.3,
+    'SH' : 298.4,
+    'UR' : 1076.3,
+    'BE' : 5959.4,
+    'FR' : 1671.4,
+    'AG' : 1404.0,
+    'GR' : 7105.0,
+    'LU' : 1493.3,
+    'BS' : 37.0,
+    'TI' : 2812.3,
+    'OW' : 490.6,
+    'AR' : 242.9,
+    'SO' : 790.4,
+    'SZ' : 908.0,
+    'JU' : 838.6,
+    'SG' : 2030.7,
+    'VS' : 5224.8,
+    'TG' : 991.5,
+    'VD' : 3212.2,
+    'BL' : 517.7,
+    'ZH' : 1728.9,
+    'NW' : 275.9,
+    'GL' : 685.4,
+    'NE' : 802.3,
+    'ZG' : 238.7,
+    'AI' : 172.4
+}
+
+func = lambda row: row.electrical_capacity / dict_areas[row.canton]
+
+df1['el_cap_by_area'] = df.apply(func, axis=1)
+st.dataframe(df1)
+
+
+fig = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=df1.canton, z=df1.el_cap_by_area,
+                                    colorscale="Viridis", 
+                                    marker_opacity=0.5, marker_line_width=0))
+
+
+fig.update_layout(mapbox_style="carto-positron",
+                  mapbox_zoom=6, mapbox_center = {"lat": 46.484, "lon": 8.1336})
+
+fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
+
+st.plotly_chart(fig)
+
+st.markdown('---')
+st.markdown('### Observations:')
+st.markdown('> Now that completely changes the situation... We see that Aargau and Glarus have a lot more electrical capacity per km2 compared to the other cantons, all other cantons have more or less of the same electrical capasity per km2')
+
+
+dict_habitants = {
+    'GE' : 419000,
+    'SH' : 74000,
+    'UR' : 35000,
+    'BE' : 950000,
+    'FR' : 243000,
+    'AG' : 556000,
+    'GR' : 186000,
+    'LU' : 352000,
+    'BS' : 186000,
+    'TI' : 315000,
+    'OW' : 33000,
+    'AR' : 53000,
+    'SO' : 247000,
+    'SZ' : 133000,
+    'JU' : 69000,
+    'SG' : 455000,
+    'VS' : 281000,
+    'TG' : 230000,
+    'VD' : 632000,
+    'BL' : 263000,
+    'ZH' : 1242000,
+    'NW' : 39000,
+    'GL' : 38000,
+    'NE' : 167000,
+    'ZG' : 102000,
+    'AI' : 15000
+}
+
+
+func = lambda row: row.electrical_capacity / dict_habitants[row.canton]
+
+df1['el_cap_by_habit'] = df.apply(func, axis=1)
+st.dataframe(df1)
+
+
+fig = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=df1.canton, z=df1.el_cap_by_habit,
+                                    colorscale="Viridis", 
+                                    marker_opacity=0.5, marker_line_width=0))
+
+
+fig.update_layout(mapbox_style="carto-positron",
+                  mapbox_zoom=6, mapbox_center = {"lat": 46.484, "lon": 8.1336})
+
+fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
+
+st.plotly_chart(fig)
