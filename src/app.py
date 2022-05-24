@@ -13,8 +13,7 @@ import streamlit as st
 
 st.title("MPG")
 
-df = pd.read_csv("data/mpg.csv")
-print(df)
+df = pd.read_csv("StramLitApp/data/mpg.csv")
 
 # Basic set-up of the page:
 # First the checkbox to show the data frame
