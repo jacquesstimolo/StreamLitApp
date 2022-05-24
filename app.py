@@ -1,4 +1,8 @@
+#--------------------------------------------
+# LIBRARIES:
+#--------------------------------------------
 # Standard imports
+from audioop import reverse
 import pandas as pd
 import json
 
@@ -13,171 +17,42 @@ import plotly.graph_objects as go
 import streamlit as st
 
 
-# st.title("MPG")
-# df = pd.read_csv("mpg.csv")
-
-
-
+#--------------------------------------------
+# DATA:
+#--------------------------------------------
 df = pd.read_csv('renewable_power_plants_CH.csv')
-
 
 with open('georef-switzerland-kanton.geojson') as json_file:
     cantons = json.load(json_file)
 
-
-
-
-
-# Basic set-up of the page:
-# First the checkbox to show the data frame
-if st.sidebar.checkbox('Show dataframe'):
-    st.header("dataframe")
-    st.dataframe(df.head())
-
-
-# Then the radio botton for the plot type
-# show_plot = st.sidebar.radio(
-#     label='Choose Plot type', options=['Matplotlib', 'Plotly'])
-
-
-# st.header("Highway Fuel Efficiency")
-# years = ["All"]+sorted(pd.unique(df['year']))
-# year = st.sidebar.selectbox("choose a Year", years)   # Here the selection of the year.
-# car_classes = ['All'] + sorted(pd.unique(df['class']))
-# car_class = st.sidebar.selectbox("choose a Class", car_classes)  # and the selection of the class.
-
-
-# show_means = st.sidebar.radio(
-#     label='Show Class Means', options=['Yes', 'No'])
-
-
-# st.subheader(f'Fuel efficiency vs. engine displacement for {year}')
-
-
-# With these functions we wrangle the data and plot it.
-def mpg_mpl(year, car_class, show_means):
-    fig, ax = plt.subplots()
-    if year == 'All':
-        group = df
-    else:
-        group = df[df['year'] == year]
-    if car_class != 'All':
-        st.text(f'plotting car class: {car_class}')
-        group = group[group['class'] == car_class]
-    group.plot('displ', 'hwy', marker='.', linestyle='', ms=12, alpha=0.5, ax=ax, legend=None)
-    if show_means == "Yes":
-        means = df.groupby('class').mean()
-        for cc in means.index:
-            ax.plot(means.loc[cc, 'displ'], means.loc[cc, 'hwy'], marker='.', linestyle='', ms=12, alpha=1, label=cc)
-        ax.legend(loc='upper right', bbox_to_anchor=(1.1, 1))
-    ax.set_xlim([1, 8])
-    ax.set_ylim([10, 50])
-    plt.close()
-    return fig
-
-
-def mpg_plotly(year, car_class, show_means):
-    if year == 'All':
-        group = df
-    else:
-        group = df[df['year'] == year]
-    if car_class != 'All':
-        group = group[group['class'] == car_class]
-    fig = px.scatter(group, x='displ', y='hwy', opacity=0.5, range_x=[1, 8], range_y=[10, 50])
-    if show_means == "Yes":
-        means = df.groupby('class').mean().reset_index()
-        fig = px.scatter(means, x='displ', y='hwy', opacity=0.5, color='class', range_x=[1, 8], range_y=[10, 50])
-        fig.add_trace(go.Scatter(x=group['displ'], y=group['hwy'], mode='markers', name=f'{year}_{car_class}',
-                                 opacity=0.5, marker=dict(color="RoyalBlue")))
-    return fig
-  
-
-# if show_plot == 'Plotly':
-#     st.plotly_chart(mpg_plotly(year, car_class, show_means))
-    
-# else:
-#     st.pyplot(mpg_mpl(year, car_class, show_means))
-
-
-
-
-
-
-# Adding ID to data:
-def modify_cantons(canton):
-    dict_cantons = {
-        'Genève' : 'GE',
-        'Schaffhausen' : 'SH',
-        'Uri' : 'UR',
-        'Bern' : 'BE',
-        'Fribourg' : 'FR',
-        'Aargau' : 'AG',
-        'Graubünden' : 'GR',
-        'Luzern' : 'LU',
-        'Basel-Stadt' : 'BS',
-        'Ticino' : 'TI',
-        'Obwalden' : 'OW',
-        'Appenzell Ausserrhoden' : 'AR',
-        'Solothurn' : 'SO',
-        'Schwyz' : 'SZ',
-        'Jura' : 'JU',
-        'St. Gallen' : 'SG',
-        'Valais' : 'VS',
-        'Thurgau' : 'TG',
-        'Vaud' : 'VD',
-        'Basel-Landschaft' : 'BL',
-        'Zürich' : 'ZH',
-        'Nidwalden' : 'NW',
-        'Glarus' : 'GL',
-        'Neuchâtel' : 'NE',
-        'Zug' : 'ZG',
-        'Appenzell Innerrhoden' : 'AI'
-    }
-
-    for i in range(len(cantons['features'])):
-        cantons['features'][i]['id'] = dict_cantons[cantons['features'][i]['properties']['kan_name']]
-    return cantons
-
-
-cantons = modify_cantons(cantons)
-
-
-st.markdown('> For the first analysis I will just take the the sum of the electrical capacity for each type of energy-harversting method, that for each canton.')
-
-df1 = df.copy()
-df1 = df1.groupby('canton').electrical_capacity.sum().reset_index()
-st.dataframe(df1)
-
-
-fig = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=df1.canton, z=df1.electrical_capacity,
-                                    colorscale="Viridis", 
-                                    marker_opacity=0.5, marker_line_width=0))
-
-
-fig.update_layout(mapbox_style="carto-positron",
-                  mapbox_zoom=6, mapbox_center = {"lat": 46.484, "lon": 8.1336})
-
-fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-
-
-st.plotly_chart(fig)
-
-
-st.markdown('---')
-st.markdown('### Observations:')
-st.markdown('> I noticed that big cantons also have a high electricity capacity. Hence: I will divide the elecricity by the area of each canton to obtain the el-cap per square-km. With the hope that this will partially eliminate the factor of the canton-size.')
-
-
-st.markdown('> I know yet that there are still a lot of factor as the location: After some thinking I hypothesized that the location also plays a big role.')
-st.markdown('- Cantons in the South have access to other kind of resources such as Hydro-power, due to them beeing near the Alps.')
-st.markdown(' - Cantons in the Center-North are in a plane, hence they can take advantage of the wind and sun for example.')
-
-st.markdown('> My hypothesis was confirmed after looking at the following article (given from in the exercise) Source: https://www.uvek-gis.admin.ch/BFE/storymaps/EE_Elektrizitaetsproduktionsanlagen/?lang=en')
-
-st.markdown('> Yet it is really hard to take count of such factors, hence I will ignore them.')
-st.markdown('---')
-
-
+dict_cantons = {
+    'Genève' : 'GE',
+    'Schaffhausen' : 'SH',
+    'Uri' : 'UR',
+    'Bern' : 'BE',
+    'Fribourg' : 'FR',
+    'Aargau' : 'AG',
+    'Graubünden' : 'GR',
+    'Luzern' : 'LU',
+    'Basel-Stadt' : 'BS',
+    'Ticino' : 'TI',
+    'Obwalden' : 'OW',
+    'Appenzell Ausserrhoden' : 'AR',
+    'Solothurn' : 'SO',
+    'Schwyz' : 'SZ',
+    'Jura' : 'JU',
+    'St. Gallen' : 'SG',
+    'Valais' : 'VS',
+    'Thurgau' : 'TG',
+    'Vaud' : 'VD',
+    'Basel-Landschaft' : 'BL',
+    'Zürich' : 'ZH',
+    'Nidwalden' : 'NW',
+    'Glarus' : 'GL',
+    'Neuchâtel' : 'NE',
+    'Zug' : 'ZG',
+    'Appenzell Innerrhoden' : 'AI'
+}
 
 dict_areas = {
     'GE' : 282.3,
@@ -208,30 +83,6 @@ dict_areas = {
     'AI' : 172.4
 }
 
-func = lambda row: row.electrical_capacity / dict_areas[row.canton]
-
-df1['el_cap_by_area'] = df.apply(func, axis=1)
-st.dataframe(df1)
-
-
-fig = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=df1.canton, z=df1.el_cap_by_area,
-                                    colorscale="Viridis", 
-                                    marker_opacity=0.5, marker_line_width=0))
-
-
-fig.update_layout(mapbox_style="carto-positron",
-                  mapbox_zoom=6, mapbox_center = {"lat": 46.484, "lon": 8.1336})
-
-fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
-
-
-st.plotly_chart(fig)
-
-st.markdown('---')
-st.markdown('### Observations:')
-st.markdown('> Now that completely changes the situation... We see that Aargau and Glarus have a lot more electrical capacity per km2 compared to the other cantons, all other cantons have more or less of the same electrical capasity per km2')
-
-
 dict_habitants = {
     'GE' : 419000,
     'SH' : 74000,
@@ -261,22 +112,198 @@ dict_habitants = {
     'AI' : 15000
 }
 
+df2 = pd.DataFrame()
+df2.index = list(dict_areas.keys())
+df2['names'] = dict_cantons.keys()
+df2['areas (km2)'] = dict_areas.values()
+df2['habitants'] = dict_habitants.values()
+
+
+types_energy = df.energy_source_level_2.unique().tolist()
+
+
+
+
+
+#--------------------------------------------
+# CHECK-BOXES:
+#--------------------------------------------
+
+show_hist = False
+if st.sidebar.checkbox('Hide Histograms'):
+    show_hist = True
+
+
+show_dfs = False
+if st.sidebar.checkbox('Hide dataframe'):
+    show_dfs = True
+
+
+reverse = []
+for i in range(len(types_energy)-1, -1, -1):
+    reverse.append(types_energy[i])
+
+enegry_type = st.sidebar.radio(
+    label='Types of Renewable Energy for last map-plot:', options=[el for el in reverse])
+
+
+
+#--------------------------------------------
+# DATA-FRAMES:
+#--------------------------------------------
+# Set ID:
+for i in range(len(cantons['features'])):
+    cantons['features'][i]['id'] = dict_cantons[cantons['features'][i]['properties']['kan_name']]
+
+# Dataframes:
+sum_el_cap = df.copy()
+sum_el_cap = sum_el_cap.groupby('canton').electrical_capacity.sum().reset_index().sort_values(by = 'electrical_capacity', ascending=False)
+sum_el_cap_n = sum_el_cap.copy()
+
+func = lambda row: row.electrical_capacity / dict_areas[row.canton]
+sum_el_cap['el_cap_by_area'] = df.apply(func, axis=1)
+sum_el_cap_area = sum_el_cap.copy()
+sum_el_cap_area = sum_el_cap_area.sort_values(by = 'electrical_capacity', ascending=False)
 
 func = lambda row: row.electrical_capacity / dict_habitants[row.canton]
+sum_el_cap['el_cap_by_habit'] = df.apply(func, axis=1)
+sum_el_cap_habit = sum_el_cap.copy()
+sum_el_cap_habit = sum_el_cap_habit.sort_values(by = 'electrical_capacity', ascending=False)
 
-df1['el_cap_by_habit'] = df.apply(func, axis=1)
-st.dataframe(df1)
 
 
-fig = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=df1.canton, z=df1.el_cap_by_habit,
+
+#--------------------------------------------
+# PLOTS:
+#--------------------------------------------
+# First plot:
+fig1 = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=sum_el_cap.canton, z=sum_el_cap.electrical_capacity,
                                     colorscale="Viridis", 
                                     marker_opacity=0.5, marker_line_width=0))
-
-
-fig.update_layout(mapbox_style="carto-positron",
+fig1.update_layout(mapbox_style="carto-positron",
                   mapbox_zoom=6, mapbox_center = {"lat": 46.484, "lon": 8.1336})
+fig1.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
-fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+# Second plot:
+fig2 = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=sum_el_cap.canton, z=sum_el_cap.el_cap_by_area,
+                                    colorscale="Viridis", 
+                                    marker_opacity=0.5, marker_line_width=0))
+fig2.update_layout(mapbox_style="carto-positron",
+                  mapbox_zoom=6, mapbox_center = {"lat": 46.484, "lon": 8.1336})
+fig2.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+
+# Third plot:
+fig3 = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=sum_el_cap.canton, z=sum_el_cap.el_cap_by_habit,
+                                    colorscale="Viridis", 
+                                    marker_opacity=0.5, marker_line_width=0))
+fig3.update_layout(mapbox_style="carto-positron",
+                  mapbox_zoom=6, mapbox_center = {"lat": 46.484, "lon": 8.1336})
+fig3.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
 
 
-st.plotly_chart(fig)
+
+def dependent_plot(keyword):
+    df_aux = df[df.energy_source_level_2 == keyword]
+    df_aux.groupby('canton').energy_source_level_2.sum()
+
+    fig4 = go.Figure(go.Choroplethmapbox(geojson=cantons, locations=df.canton, z=df_aux.electrical_capacity,
+                                    colorscale="Viridis", 
+                                    marker_opacity=0.5, marker_line_width=0))
+    fig4.update_layout(mapbox_style="carto-positron",
+                    mapbox_zoom=6, mapbox_center = {"lat": 46.484, "lon": 8.1336})
+    fig4.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+    return fig4
+
+
+#--------------------------------------------
+# PAGE:
+#--------------------------------------------
+c1, c2 = st.columns((1, 3, ))
+
+st.header('Mini-Project')
+st.header('Clean Energy Sources in Switzerland')
+
+
+if not show_dfs:
+    st.markdown('#### Data set to analyze:')
+    st.dataframe(df)
+    st.markdown('#### Data about Switzerland:')
+    st.dataframe(df2.sort_values(by='areas (km2)', ascending=False))
+ 
+
+if not show_hist:
+    st.markdown('### Data about Switzerland:')
+    sns.barplot(data = df2, x='names', y='areas (km2)', color='blue')
+    plt.xticks(rotation=90)
+    plt.title('Area of each Canton')
+    st.pyplot(plt.gcf())
+    sns.barplot(data = df2, x='names', y='habitants', color='blue')
+    plt.title('Number of Habitants of each Canton')
+    st.pyplot(plt.gcf())
+
+if not show_dfs:
+    st.markdown('### Data Sets:')
+    st.markdown('(source: https://de.statista.com/statistik/daten/studie/942738/umfrage/flaeche-der-schweiz-nach-kantonen/)')
+
+
+
+st.markdown('> For the first analysis I will just take the the sum of the electrical capacity for each type of energy-harversting method, that for each canton.')
+
+
+if not show_dfs:
+    st.markdown('### Dataframe of elecrtical capacity per Canton:')
+    st.dataframe(sum_el_cap_n)
+
+
+# First Histo:
+fig = sns.barplot(data=sum_el_cap.sort_values(by = 'electrical_capacity', ascending=True), x='canton', y='electrical_capacity', color='blue')
+# fig.set_yscale('log')
+fig = plt.xticks(rotation=90)
+plt.xlabel('Cantons')
+plt.ylabel('Electrical Capacity')
+plt.title('Electrical Capacity of each Canton', fontsize=15)
+
+if not show_hist:
+    st.pyplot(plt.gcf())
+
+st.plotly_chart(fig1)
+
+st.markdown('---')
+st.markdown('### Observations:')
+st.markdown('> I noticed that big cantons also have a high electricity capacity. Hence: I will divide the elecricity by the area of each canton to obtain the el-cap per square-km. With the hope that this will partially eliminate the factor of the canton-size.')
+
+st.markdown('> I know yet that there are still a lot of factor as the location: After some thinking I hypothesized that the location also plays a big role.')
+st.markdown('- Cantons in the South have access to other kind of resources such as Hydro-power, due to them beeing near the Alps.')
+st.markdown(' - Cantons in the Center-North are in a plane, hence they can take advantage of the wind and sun for example.')
+
+st.markdown('> My hypothesis was confirmed after looking at the following article (given from in the exercise) Source: https://www.uvek-gis.admin.ch/BFE/storymaps/EE_Elektrizitaetsproduktionsanlagen/?lang=en')
+
+st.markdown('> Yet it is really hard to take count of such factors, hence I will ignore them.')
+
+st.markdown('#### (I will map those out on the last map!)')
+st.markdown('---')
+
+
+if not show_dfs:
+    st.markdown('### Dataframe of elecrtical capacity per km2:')
+    st.dataframe(sum_el_cap_area[['canton', 'el_cap_by_area']].sort_values(by='el_cap_by_area', ascending=False))
+
+st.plotly_chart(fig2)
+
+st.markdown('---')
+st.markdown('### Observations:')
+st.markdown('> Now that completely changes the situation... We see that Aargau and Glarus have a lot more electrical capacity per km2 compared to the other cantons, all other cantons have more or less of the same electrical capasity per km2')
+
+
+if not show_dfs:
+    st.markdown('### Dataframe of elecrtical capacity per canton-habitant:')
+    st.dataframe(sum_el_cap_habit[['canton', 'el_cap_by_habit']].sort_values(by='el_cap_by_habit', ascending=False))
+
+st.plotly_chart(fig3)
+
+
+st.markdown('---')
+st.header('Last Map-Plot:')
+text = f'For Type of Renewable Energy: {enegry_type.upper()}'
+st.header(text)
+st.plotly_chart(dependent_plot(enegry_type))
